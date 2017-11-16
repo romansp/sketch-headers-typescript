@@ -1,0 +1,17 @@
+{
+  "name": "sketch-headers-typescript",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc",
+    "build": "tsc",
+    "generate": "node ./lib/generate-declarations.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^2.6.1"
+  }
+}
