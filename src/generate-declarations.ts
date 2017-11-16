@@ -1,7 +1,6 @@
 import * as http from "http";
 import * as fs from "fs";
 import * as rp from "request-promise";
-import { method } from "bluebird";
 
 export default async function generate() {
   const baseUrl = "https://skpm.github.io/sketch-headers/latest/sketch";
