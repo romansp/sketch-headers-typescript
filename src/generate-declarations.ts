@@ -1,10 +1,12 @@
 import * as http from "http";
-import * as fs from "fs";
+import * as fs from "fs-extra";
 import * as rp from "request-promise";
 
-export default async function generate() {
-  const baseUrl = "https://skpm.github.io/sketch-headers/latest/sketch";
-  const indexUrl = `${baseUrl}/index.json`;
+const OUTPUT_PATH = "./dist";
+const SKETCH_HEADERS_API = "https://skpm.github.io/sketch-headers/latest";
+
+export async function generate(baseUri: string, output: string) {
+  const indexUrl = `${baseUri}/index.json`;
 
   const opts: rp.Options = {
     uri: indexUrl,
@@ -13,24 +15,25 @@ export default async function generate() {
   };
 
   const entries = (await rp(opts)) as string[];
-  const file = fs.createWriteStream("./dist/sketch-headers.d.ts");
+  await fs.ensureFile(output)
+  const file = fs.createWriteStream(output);
 
   for (let entry of entries) {
-    if (entry.endsWith("\n-")) {
-      entry = entry.substring(0, entry.indexOf("\n-")) + "%250A-";
-    }
-    let typeUrl = `${baseUrl}/${entry}.json`;
+    // some entries are bugged and have line breaks in the end.
+    entry = entry.replace("\n-", "%250A-");
+    entry = entry.replace("\n@property(readonly,", "%250A%2540property(readonly%252C");
+    let typeUrl = `${baseUri}/${entry}.json`;
     opts.uri = typeUrl;
+
+    console.log(entry);
     const type = (await rp(opts)) as SketchHeaders.API.Type;
 
     file.write(`
 ${classOrInterface(type)} ${type.className} {${each(
-      toArray(type.methods),
-      method => `
-  ${possiblyStatic(method)}${escapeMethodName(method.bridgedName)}(${extractArguments(
-        method
-      )}): ${convertType(method.returns)};`
-    )}
+        toArray(type.methods),
+        method => `
+  ${possiblyStatic(method)}${escapeMethodName(method.bridgedName)}(${extractArguments(method)}): ${convertType(method.returns)};`
+      )}
 }
 `);
   }
@@ -112,4 +115,10 @@ function trimEnd(source: string, subStr: string) {
   return source;
 }
 
-generate();
+
+export async function generateAll() {
+  await generate(`${SKETCH_HEADERS_API}/sketch`, `${OUTPUT_PATH}/sketch-headers.d.ts`);
+  await generate(`${SKETCH_HEADERS_API}/macos`, `${OUTPUT_PATH}/macos-headers.d.ts`);
+}
+
+generateAll();
