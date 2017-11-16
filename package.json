@@ -12,6 +12,13 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "request": "^2.83.0",
+    "request-promise": "^4.2.2",
     "typescript": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.53",
+    "@types/request": "^2.0.8",
+    "@types/request-promise": "^4.1.39"
   }
 }
