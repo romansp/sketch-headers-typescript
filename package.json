@@ -1,6 +1,6 @@
 {
   "name": "sketch-headers-typescript",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -9,8 +9,8 @@
     "build": "tsc",
     "generate": "node ./lib/generate-declarations.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Roman Pavlov",
+  "license": "MIT",
   "dependencies": {
     "fs-extra": "^4.0.2",
     "request": "^2.83.0",
