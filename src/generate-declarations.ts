@@ -1,32 +1,23 @@
 import * as http from "http";
 import * as fs from "fs-extra";
-import * as rp from "request-promise";
+import * as path from "path";
 
 const OUTPUT_PATH = "./dist";
-const SKETCH_HEADERS_API = "https://skpm.github.io/sketch-headers/latest";
 
 export async function generate(baseUri: string, output: string) {
-  const indexUrl = `${baseUri}/index.json`;
+  const index = `${baseUri}/index.json`;
 
-  const opts: rp.Options = {
-    uri: indexUrl,
-    json: true,
-    followAllRedirects: true
-  };
-
-  const entries = (await rp(opts)) as string[];
+  const entries = (await fs.readJson(index)) as string[];
   await fs.ensureFile(output)
   const file = fs.createWriteStream(output);
 
   for (let entry of entries) {
     // some entries are bugged and have line breaks in the end.
-    entry = entry.replace("\n-", "%250A-");
-    entry = entry.replace("\n@property(readonly,", "%250A%2540property(readonly%252C");
-    let typeUrl = `${baseUri}/${entry}.json`;
-    opts.uri = typeUrl;
+    entry = encodeURIComponent(entry);
+    let typeHeader = `${baseUri}/${entry}.json`;
 
     console.log(entry);
-    const type = (await rp(opts)) as SketchHeaders.API.Type;
+    const type = (await fs.readJson(typeHeader)) as SketchHeaders.API.Type;
 
     file.write(`
 ${classOrInterface(type)} ${type.className} {${each(
@@ -115,6 +106,7 @@ function trimEnd(source: string, subStr: string) {
   return source;
 }
 
+const SKETCH_HEADERS_API = path.join(__dirname, '../sketch-headers/latest/');
 
 export async function generateAll() {
   await generate(`${SKETCH_HEADERS_API}/sketch`, `${OUTPUT_PATH}/sketch-headers.d.ts`);
