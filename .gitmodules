@@ -1,0 +1,4 @@
+[submodule "sketch-headers"]
+	path = sketch-headers
+	url = https://github.com/skpm/sketch-headers
+	branch = gh-pages
