@@ -4,6 +4,12 @@ import * as path from "path";
 
 const OUTPUT_PATH = "./dist";
 
+interface TypeInfo {
+  type: SketchHeaders.API.Type;  
+  methods: SketchHeaders.API.Method[];
+  tsKind: "interface" | "class";
+}
+
 export async function generate(baseUri: string, output: string) {
   const index = `${baseUri}/index.json`;
 
@@ -19,13 +25,14 @@ export async function generate(baseUri: string, output: string) {
     console.log(entry);
     const type = (await fs.readJson(typeHeader)) as SketchHeaders.API.Type;
 
-    file.write(`
-${classOrInterface(type)} ${type.className} {${each(
+    const info = typeInfo(type);
+    file.write(`declare ${info.tsKind} ${type.className}${inheritance(info)} {${each(
         toArray(type.methods),
         method => `
   ${possiblyStatic(method)}${escapeMethodName(method.bridgedName)}(${extractArguments(method)}): ${convertType(method.returns)};`
       )}
 }
+
 `);
   }
 
@@ -84,8 +91,27 @@ function convertType(type: SketchHeaders.API.ArgumentType) {
   return tsType;
 }
 
-function classOrInterface(type: SketchHeaders.API.Type) {
-  return toArray(type.methods).some(method => method.kind == "instance") ? "class" : "interface";
+function typeInfo(type: SketchHeaders.API.Type): TypeInfo {
+  const methods = toArray(type.methods);
+  return {
+    methods,
+    tsKind: methods.some(method => method.kind == "instance") ? "class" : "interface",
+    type,
+  };
+}
+
+function classOrInterface(typeInfo: TypeInfo) {
+  return "class";
+}
+
+function inheritance(typeInfo: TypeInfo) {
+  const type = typeInfo.type;
+  let inheritance = [];
+  if (type.extends) {
+    inheritance.push(type.extends);
+  }
+  inheritance = [...inheritance, ...type.interfaces];
+  return inheritance.length > 0 ? ` extends ${inheritance.join(', ')}` : "";
 }
 
 function possiblyStatic(method: SketchHeaders.API.Method) {
@@ -106,11 +132,11 @@ function trimEnd(source: string, subStr: string) {
   return source;
 }
 
-const SKETCH_HEADERS_API = path.join(__dirname, '../sketch-headers/latest/');
+const SKETCH_HEADERS_API = path.join(__dirname, '../../sketch-headers/latest/');
 
 export async function generateAll() {
-  await generate(`${SKETCH_HEADERS_API}/sketch`, `${OUTPUT_PATH}/sketch-headers.d.ts`);
-  await generate(`${SKETCH_HEADERS_API}/macos`, `${OUTPUT_PATH}/macos-headers.d.ts`);
+  await generate(`${SKETCH_HEADERS_API}`, `${OUTPUT_PATH}/sketch-headers.d.ts`);
+ // await generate(`${SKETCH_HEADERS_API}`, `${OUTPUT_PATH}/macos-headers.d.ts`);
 }
 
 generateAll();
