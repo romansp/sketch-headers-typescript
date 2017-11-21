@@ -5,7 +5,7 @@ import * as path from "path";
 const OUTPUT_PATH = "./dist";
 
 interface TypeInfo {
-  type: SketchHeaders.API.Type;  
+  type: SketchHeaders.API.HeaderType;  
   methods: SketchHeaders.API.Method[];
   tsKind: "interface" | "class";
 }
@@ -23,14 +23,16 @@ export async function generate(baseUri: string, output: string) {
     let typeHeader = `${baseUri}/${entry}.json`;
 
     console.log(entry);
-    const type = (await fs.readJson(typeHeader)) as SketchHeaders.API.Type;
+    const type = (await fs.readJson(typeHeader)) as SketchHeaders.API.HeaderType;
 
     const info = typeInfo(type);
     file.write(`declare ${info.tsKind} ${type.className}${inheritance(info)} {${each(
         toArray(type.methods),
         method => `
   ${possiblyStatic(method)}${escapeMethodName(method.bridgedName)}(${extractArguments(method)}): ${convertType(method.returns)};`
-      )}
+      )}${each(toArray(type.properties), property => `
+  ${property.name}(): ${convertType(property.type)};
+  set${property.name}(${property.name}: ${convertType(property.type)}): void;`)}
 }
 
 `);
@@ -64,7 +66,7 @@ function extractArguments(method: SketchHeaders.API.Method) {
     .join(", ");
 }
 
-function convertType(type: SketchHeaders.API.ArgumentType) {
+function convertType(type: SketchHeaders.API.Type) {
   let tsType = trimStart(type, "struct ");
   tsType = trimEnd(tsType, " *");
   if (tsType == "BOOL") {
@@ -91,7 +93,7 @@ function convertType(type: SketchHeaders.API.ArgumentType) {
   return tsType;
 }
 
-function typeInfo(type: SketchHeaders.API.Type): TypeInfo {
+function typeInfo(type: SketchHeaders.API.HeaderType): TypeInfo {
   const methods = toArray(type.methods);
   return {
     methods,
@@ -132,11 +134,11 @@ function trimEnd(source: string, subStr: string) {
   return source;
 }
 
-const SKETCH_HEADERS_API = path.join(__dirname, '../../sketch-headers/latest/');
+const SKETCH_HEADERS_API = path.join(__dirname, '../../sketch-headers/headers/');
 
 export async function generateAll() {
-  await generate(`${SKETCH_HEADERS_API}`, `${OUTPUT_PATH}/sketch-headers.d.ts`);
- // await generate(`${SKETCH_HEADERS_API}`, `${OUTPUT_PATH}/macos-headers.d.ts`);
+  await generate(`${SKETCH_HEADERS_API}/sketch`, `${OUTPUT_PATH}/sketch-headers.d.ts`);
+  await generate(`${SKETCH_HEADERS_API}/macos`, `${OUTPUT_PATH}/macos-headers.d.ts`);
 }
 
 generateAll();

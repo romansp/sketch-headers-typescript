@@ -1,5 +1,5 @@
 declare namespace SketchHeaders.API {
-  interface Type {
+  interface HeaderType {
     imports: string[];
     classes: string[];
     protocol: boolean;
@@ -7,20 +7,30 @@ declare namespace SketchHeaders.API {
     extends: string;
     interfaces: string[];
     methods: { [methodName: string]: Method };
+    properties: { [propertyName: string]: Property };
   }
 
   interface Method {
     name: string,
     bridgedName: string,
-    args: { [argName: string]: Argument };
+    args: { [argName: string]: MethodArgument };
     returns: string,
-    kind: "instance" | "class",
-    kindIndicator: "+" | "-"
+    kind: MethodKind,
+    kindIndicator: MethodKindIndicator
   }
 
-  interface Argument {
-    type: ArgumentType;
+  interface MethodArgument {
+    type: Type;
   }
 
-  type ArgumentType = string;
+  type Type = string;
+  type MethodKind = "instance" | "class";
+  type MethodKindIndicator = "+" | "-";
+
+  interface Property {
+    name: string;
+    pointer: boolean;
+    type: Type;
+    attributes: string[];
+  }
 }
