@@ -2,8 +2,6 @@ import * as http from "http";
 import * as fs from "fs-extra";
 import * as path from "path";
 
-const OUTPUT_PATH = "./dist";
-
 interface TypeInfo {
   type: SketchHeaders.API.HeaderType;  
   methods: SketchHeaders.API.Method[];
@@ -134,7 +132,8 @@ function trimEnd(source: string, subStr: string) {
   return source;
 }
 
-const SKETCH_HEADERS_API = path.join(__dirname, '../../sketch-headers/headers/');
+const SKETCH_HEADERS_API = path.join(__dirname, '../sketch-headers/latest');
+const OUTPUT_PATH = "./dist";
 
 export async function generateAll() {
   await generate(`${SKETCH_HEADERS_API}/sketch`, `${OUTPUT_PATH}/sketch-headers.d.ts`);

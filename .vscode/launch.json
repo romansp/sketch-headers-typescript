@@ -8,7 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "Generate declarations",
-            "program": "${workspaceFolder}/lib\\generate-declarations.js",
+            "program": "${workspaceFolder}/lib/generate-declarations.js",
             "preLaunchTask": "tsc: build - tsconfig.json",
             "outFiles": [
                 "${workspaceFolder}/lib/**/*.js"
