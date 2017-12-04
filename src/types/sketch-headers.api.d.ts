@@ -24,7 +24,7 @@ declare namespace SketchHeaders.API {
   }
 
   type Type = string;
-  type MethodKind = "instance" | "class";
+  type MethodKind = "class" | "instance";
   type MethodKindIndicator = "+" | "-";
 
   interface Property {

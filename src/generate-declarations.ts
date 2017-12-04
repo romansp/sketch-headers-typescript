@@ -25,12 +25,12 @@ export async function generate(baseUri: string, output: string) {
 
     const info = typeInfo(type);
     file.write(`declare ${info.tsKind} ${type.className}${inheritance(info)} {${each(
-        toArray(type.methods),
+        info.methods,
         method => `
-  ${possiblyStatic(method)}${escapeMethodName(method.bridgedName)}(${extractArguments(method)}): ${convertType(method.returns)};`
+  ${possiblyStatic(method)}${escapeMethodName(method.bridgedName)}(${extractArguments(method, info)}): ${convertType(method.returns, info)};`
       )}${each(toArray(type.properties), property => `
-  ${property.name}(): ${convertType(property.type)};
-  set${property.name}(${property.name}: ${convertType(property.type)}): void;`)}
+  ${property.name}(): ${convertType(property.type, info)};
+  set${property.name}(${property.name}: ${convertType(property.type, info)}): void;`)}
 }
 
 `);
@@ -58,41 +58,80 @@ function escapeMethodName(methodName: string) {
   return methodName;
 }
 
-function extractArguments(method: SketchHeaders.API.Method) {
+function extractArguments(method: SketchHeaders.API.Method, typeInfo: TypeInfo) {
   return toArray(method.args)
-    .map((arg, i) => `arg${i}: ${convertType(arg.type)}`)
+    .map((arg, i) => `arg${i}: ${convertType(arg.type, typeInfo)}`)
     .join(", ");
 }
 
-function convertType(type: SketchHeaders.API.Type) {
-  let tsType = trimStart(type, "struct ");
+const typesMap = {
+  "BOOL": "boolean",
+  
+  "char": "string",
+  "SEL": "string",
+
+  "int": "number",
+  "short": "number",
+  "unsigned long long": "number",
+  "long long": "number",
+  "double": "number",
+  "float": "number",
+
+  "id": "any",
+  "CDUnknownBlockType": "any",
+  "OpaqueControlRef": "any",
+  "OpaqueEventRef": "any",
+  "OpaqueEventHandlerCallRef": "any",
+  "OpaqueWindowPtr": "any"
+};
+
+function convertType(type: SketchHeaders.API.Type, typeInfo: TypeInfo) {
+  let tsType = trimStart(type, "const ")
+  tsType = trimStart(tsType, "in ");
+  tsType = trimStart(tsType, "bycopy ");
+  tsType = trimStart(tsType, "struct ");
+  tsType = trimStart(tsType, "unsigned ");
+  tsType = trimStart(tsType, "__weak ");
+  tsType = trimStart(tsType, "nullable ");  
   tsType = trimEnd(tsType, " *");
-  if (tsType == "BOOL") {
-    return "boolean";
+
+  if (tsType.indexOf("<") != -1) {
+    tsType = tsType.substring(0, tsType.indexOf("<"));
   }
-  if (tsType == "id") {
-    return "any";
+
+  if (tsType == 'instancetype') {
+    return typeInfo.type.className;
   }
-  if (tsType == "char") {
-    return "string";
-  }
-  if (tsType == "SEL") {
-    return "string";
-  }
-  if (tsType == "unsigned long long") {
-    return "number";
-  }
-  if (tsType == "long long") {
-    return "number";
-  }
-  if (tsType == "double") {
-    return "number";
+
+  const mappedType = typesMap[tsType];
+  if (mappedType) {
+    return mappedType;
   }
   return tsType;
 }
 
+var macros = [
+  'NS_DEPRECATED',
+  'NS_DESIGNATED_INITIALIZER',
+  'NS_RETURNS_INNER_POINTER',
+  'NS_AVAILABLE',
+  'NS_AUTOMATED_REFCOUNT_UNAVAILABLE',
+  'NS_SWIFT_UNAVAILABLE',
+];
+
+function shouldSkipMethod(method: SketchHeaders.API.Method): boolean {
+  for (const macro of macros) {
+    const hasMacro = method.bridgedName.indexOf(macro) != -1;
+    if (hasMacro) {
+      return true;
+    };
+  }
+  return false;
+}
+
 function typeInfo(type: SketchHeaders.API.HeaderType): TypeInfo {
-  const methods = toArray(type.methods);
+  const methods = toArray(type.methods).filter(method => !shouldSkipMethod(method));
+  
   return {
     methods,
     tsKind: methods.some(method => method.kind == "instance") ? "class" : "interface",
@@ -132,7 +171,7 @@ function trimEnd(source: string, subStr: string) {
   return source;
 }
 
-const SKETCH_HEADERS_API = path.join(__dirname, '../sketch-headers/latest');
+const SKETCH_HEADERS_API = path.join(__dirname, '../../sketch-headers/headers');
 const OUTPUT_PATH = "./dist";
 
 export async function generateAll() {
