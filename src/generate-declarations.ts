@@ -1,4 +1,3 @@
-import * as http from "http";
 import * as fs from "fs-extra";
 import * as path from "path";
 
@@ -73,6 +72,7 @@ const typesMap = {
   "int": "number",
   "short": "number",
   "unsigned long long": "number",
+  "unsigned int": "number",
   "long long": "number",
   "double": "number",
   "float": "number",
@@ -92,8 +92,11 @@ function convertType(type: SketchHeaders.API.Type, typeInfo: TypeInfo) {
   tsType = trimStart(tsType, "struct ");
   tsType = trimStart(tsType, "unsigned ");
   tsType = trimStart(tsType, "__weak ");
-  tsType = trimStart(tsType, "nullable ");  
-  tsType = trimEnd(tsType, " *");
+  tsType = trimStart(tsType, "nullable ");
+  while (tsType.endsWith("*")) {
+    tsType = trimEnd(tsType, "*");
+  }
+  tsType = trimEnd(tsType, " ");
 
   if (tsType.indexOf("<") != -1) {
     tsType = tsType.substring(0, tsType.indexOf("<"));
